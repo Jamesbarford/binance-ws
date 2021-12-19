@@ -1,0 +1,16 @@
+.dub
+docs.json
+__dummy.html
+docs/
+/wsbinance
+wsbinance.so
+wsbinance.dylib
+wsbinance.dll
+wsbinance.a
+wsbinance.lib
+wsbinance-test-*
+*.exe
+*.o
+*.obj
+*.lst
+*.ini

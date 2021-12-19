@@ -1,0 +1,12 @@
+{
+	"authors": [
+		"James Barford-Evans"
+	],
+	"copyright": "Copyright © 2021, James Barford-Evans",
+	"dependencies": {
+		"vibe-d": "~>0.9.4"
+	},
+	"description": "d",
+	"license": "BSD",
+	"name": "wsbinance"
+}
