@@ -1,22 +1,28 @@
 module ex;
 
-import std.stdio;
 import core.memory;
+import core.stdc.stdlib;
+import core.sys.posix.unistd;
+import core.stdc.string;
+import core.stdc.errno;
+
+import std.stdio: stderr, writeln;
 import std.json;
 import std.conv;
 import std.array;
 import std.algorithm;
-import core.stdc.stdlib;
-import core.sys.posix.unistd;
+import std.file;
+
 import vibe.vibe;
 
 private const string BINANCE_URL = "wss://stream.binance.com:9443/stream?streams=";
 
 void printUsage() {
-    stderr.writeln("Usage: wsbinance [OPTIONS]\n" ~
-            "  Simple websocket client for connecting to a kline stream and printing\n" ~
-            "  the output to stdout.\n\n" ~
-            "  --symbols <string>  A csv of coin symbols to track. Example: btcgbp,ethgbp or btcgbp"
+    stderr.writeln("\nUsage: wsbinance [OPTIONS]\n\n" ~
+            "Simple websocket client for connecting to a kline stream and printing\n" ~
+            "the output to stdout or saving the data in a file.\n\n" ~
+            "  --symbols <string>   A csv of coin symbols to track. Example: btcgbp,ethgbp or btcgbp\n" ~
+            "  --out-file <string>  Name of a file to write the contents out to\n"
         );
     exit(EXIT_FAILURE);
 }
@@ -25,7 +31,10 @@ WebSocket wsConnect(string url) {
     return connectWebSocket(URL(url));
 }
 
-void wsMain(WebSocket ws) {
+void wsMain(WebSocket ws, string out_file) {
+    if (out_file)
+        append(out_file, "[");
+
     while (ws.waitForData()) {
         auto txt = ws.receiveText;
 
@@ -33,7 +42,10 @@ void wsMain(WebSocket ws) {
             auto j = parseJSON(txt);
             // sometimes this comes though: {"result":null,"id":<int>}
             if ("result" in j) continue;
-            writeln(j.toPrettyString());
+            /* store data */
+            if (out_file) append(out_file, j.toString() ~ ",");
+            /* write to stdout */
+            else writeln(j.toPrettyString());
         } catch(Exception e) {
             stderr.writefln("Failed to parse json %s", e);
             ws.close(WebSocketCloseReason.internalError);
@@ -61,18 +73,35 @@ string binanceCreatePayload(string[] symbols) {
     return payload;
 }
 
-string[] parseCmdArgs(string []argv) {
+string[string] parseCmdArgs(string []argv) {
+    string[string] arg_table;
+
     for (int i = 0; i < argv.length; ++i) {
-        if (argv[i] == "--symbols") {
-            return argv[i + 1].split(",");
+        switch (argv[i]) {
+            case "--symbols":
+                arg_table["symbols"] = argv[++i];
+                continue;
+            case "--out-file":
+                arg_table["out_file"] = argv[++i];
+                continue;
+            default: continue;
         }
     }
 
-    return null;
+    return arg_table;
 }
 
 void main(string []argv) {
-    string []symbols = parseCmdArgs(argv);
+    string[string] arg_table = parseCmdArgs(argv);
+
+    if (!("symbols" in arg_table)) {
+        stderr.write("--symbols must be provided\n");
+        printUsage();
+        exit(EXIT_FAILURE);
+    }
+
+    string []symbols = arg_table["symbols"].split(",");
+    string out_file = "out_file" in arg_table ? arg_table["out_file"] : null;
 
     if (symbols == null) printUsage();
 
@@ -81,7 +110,7 @@ void main(string []argv) {
     WebSocket ws = wsConnect(url);
     ws.send(payload);
 
-    wsMain(ws);
+    wsMain(ws, out_file);
     scope(exit) {
         ws.close();
     }
