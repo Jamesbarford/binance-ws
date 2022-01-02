@@ -8,14 +8,14 @@ Very simple binance command line websocket client.
 dub build
 ```
 
-## Example
-
-Follows the simple format of:
-```sh
-wsbinance --symbols <csv_string>
+## Usage
 ```
+Usage: wsbinance [OPTIONS]
 
-```sh
-wsbinance --symbols btcgbp@ticker,ethgbp@depth
+Simple websocket client for connecting to a kline stream and printing
+the output to stdout or saving the data in a file.
+
+  --symbols <string>   A csv of coin symbols to track. Example: btcgbp,ethgbp or btcgbp
+  --out-file <string>  Name of a file to write the contents out to
 ```
 
